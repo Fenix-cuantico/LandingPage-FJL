@@ -1,0 +1,249 @@
+// ==============================================================================
+// FJL — Documento Maestro de Arquitectura v1.1
+// Esquema Prisma para PostgreSQL con Multi-Tenant y Row-Level Security (RLS)
+// ==============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+// ------------------------------------------------------------------------------
+// 1. ORGANIZACIÓN Y TENANCY (Sección 5.1 y 6.1)
+// ------------------------------------------------------------------------------
+
+enum OrgStatus {
+  active
+  suspended
+  archived
+}
+
+enum UserRole {
+  superadmin
+  admin
+  editor
+  viewer
+}
+
+enum SiteStatus {
+  draft
+  published
+  archived
+}
+
+enum PageStatus {
+  draft
+  published
+  archived
+}
+
+model Organization {
+  id        String     @id @default(uuid()) // UUIDv7 recomendado
+  name      String
+  slug      String     @unique
+  status    OrgStatus  @default(active)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  deletedAt DateTime?  // Borrado lógico (Sección 5.2)
+
+  memberships Membership[]
+  invitations Invitation[]
+  sites       Site[]
+  media       Media[]
+  auditLogs   AuditLog[]
+
+  @@map("organizations")
+}
+
+model User {
+  id              String       @id @default(uuid())
+  name            String
+  email           String       @unique
+  emailVerifiedAt DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  memberships Membership[]
+  auditLogs   AuditLog[]
+
+  @@map("users")
+}
+
+model Membership {
+  userId         String
+  organizationId String
+  role           UserRole @default(editor)
+  createdAt      DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([userId, organizationId])
+  @@index([organizationId])
+  @@map("memberships")
+}
+
+model Invitation {
+  id             String    @id @default(uuid())
+  organizationId String
+  email          String
+  role           UserRole  @default(editor)
+  tokenHash      String    @unique
+  expiresAt      DateTime
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("invitations")
+}
+
+// ------------------------------------------------------------------------------
+// 2. SITIOS Y DOMINIOS (Sección 5.1 y 7)
+// ------------------------------------------------------------------------------
+
+model Site {
+  id             String     @id @default(uuid())
+  organizationId String
+  name           String
+  status         SiteStatus @default(draft)
+  theme          Json       // Tokens CSS: colors, typography, borderRadius (Sección 4)
+  seo            Json       // Metas, OG, canonical (Sección 10.2)
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  deletedAt      DateTime?
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  domains      Domain[]
+  pages        Page[]
+  submissions  FormSubmission[]
+
+  @@index([organizationId])
+  @@map("sites")
+}
+
+model Domain {
+  id                String    @id @default(uuid())
+  siteId            String
+  hostname          String    @unique // Único en toda la plataforma (Sección 7.2)
+  isPrimary         Boolean   @default(false)
+  verificationToken String
+  verifiedAt        DateTime?
+  createdAt         DateTime  @default(now())
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId])
+  @@map("domains")
+}
+
+// ------------------------------------------------------------------------------
+// 3. PÁGINAS Y SECCIONES MODULARES (Sección 5.1 y 8)
+// ------------------------------------------------------------------------------
+
+model Page {
+  id                String     @id @default(uuid())
+  siteId            String
+  title             String
+  slug              String     // ej. "" para home o "nosotros"
+  status            PageStatus @default(draft)
+  publishedSnapshot Json?      // Snapshot inmutable publicado (Sección 8.1 y Regla 17)
+  publishedAt       DateTime?
+  createdBy         String
+  updatedBy         String
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  deletedAt         DateTime?
+
+  site     Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  sections Section[]
+
+  @@unique([siteId, slug])
+  @@index([siteId])
+  @@map("pages")
+}
+
+model Section {
+  id            String   @id @default(uuid())
+  pageId        String
+  type          String   // navbar, hero, about, services, features, etc.
+  schemaVersion Int      @default(1) // Sección 1.1: versionado para migraciones seguras
+  position      Int      // Orden de renderizado (Regla 4)
+  enabled       Boolean  @default(true) // Visibilidad (Regla 4)
+  data          Json     // Configuración validada por Zod
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId])
+  @@index([pageId, position])
+  @@map("sections")
+}
+
+model Template {
+  id            String   @id @default(uuid())
+  name          String
+  description   String
+  category      String
+  configuration Json     // Snapshot base listo para copiar (Sección 4)
+  createdAt     DateTime @default(now())
+
+  @@map("templates")
+}
+
+// ------------------------------------------------------------------------------
+// 4. ARCHIVOS, FORMULARIOS Y AUDITORÍA (Sección 5.1, 9 y 11.1)
+// ------------------------------------------------------------------------------
+
+model Media {
+  id             String   @id @default(uuid())
+  organizationId String
+  storageKey     String   // Clave en Cloudflare R2 (Sección 5.3)
+  mimeType       String
+  size           Int
+  width          Int?
+  height         Int?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("media")
+}
+
+model FormSubmission {
+  id        String    @id @default(uuid())
+  siteId    String
+  formData  Json      // Datos del contacto validados
+  createdAt DateTime  @default(now())
+  deletedAt DateTime? // Retención y borrado legal (Sección 9.2)
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId])
+  @@map("form_submissions")
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  organizationId String
+  userId         String
+  action         String   // ej. SITE_PUBLISHED, DOMAIN_ADDED, ORG_SUSPENDED
+  target         String
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("audit_logs")
+}
+

@@ -1,0 +1,75 @@
+# Dependencias
+node_modules/
+.pnp
+.pnp.js
+
+# Salidas de compilacion y cache
+dist/
+dist-ssr/
+build/
+*.tsbuildinfo
+.vite/
+
+# Documentacion privada y arquitectura interna
+FJL — Documento maestro de arquitectura y planificación v1.1.md
+FJL - Documento maestro de arquitectura y planificaci*.md
+*arquitectura*
+*planificacion*
+*maestro*.md
+docs/private/
+*.internal.*
+*.private.*
+
+# Variables de entorno y credenciales sensibles
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+*.cert
+*.crt
+secrets/
+credentials/
+
+# Rastros de herramientas, asistentes e integraciones de IA
+.gemini/
+.antigravity/
+.cursor/
+.cline/
+.roo/
+.continue/
+.codeium/
+.copilot/
+copilot/
+*.prompt
+
+# Configuracion de editores e IDEs
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Registros y logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Archivos del sistema operativo
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+

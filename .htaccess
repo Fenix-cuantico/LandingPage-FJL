@@ -1,0 +1,10 @@
+# Configuración para servir la maqueta construida automáticamente en Laragon (Apache)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  
+  # Si el recurso solicitado está en dist/assets
+  RewriteRule ^assets/(.*)$ dist/assets/$1 [L]
+
+  # Si se accede a la raíz de LP-FJL en Apache, redirigir internamente a dist/
+  RewriteRule ^$ dist/ [L]
+</IfModule>
