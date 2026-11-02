@@ -3,14 +3,12 @@ node_modules/
 .pnp
 .pnp.js
 
-# Salidas de compilacion y cache
 dist/
 dist-ssr/
 build/
 *.tsbuildinfo
 .vite/
 
-# Documentacion privada y arquitectura interna
 FJL — Documento maestro de arquitectura y planificación v1.1.md
 FJL - Documento maestro de arquitectura y planificaci*.md
 *arquitectura*
@@ -20,7 +18,6 @@ docs/private/
 *.internal.*
 *.private.*
 
-# Variables de entorno y credenciales sensibles
 .env
 .env.local
 .env.development.local
@@ -33,19 +30,7 @@ docs/private/
 secrets/
 credentials/
 
-# Rastros de herramientas, asistentes e integraciones de IA
-.gemini/
-.antigravity/
-.cursor/
-.cline/
-.roo/
-.continue/
-.codeium/
-.copilot/
-copilot/
-*.prompt
 
-# Configuracion de editores e IDEs
 .vscode/
 .idea/
 *.suo
@@ -54,7 +39,6 @@ copilot/
 *.sln
 *.sw?
 
-# Registros y logs
 logs/
 *.log
 npm-debug.log*
